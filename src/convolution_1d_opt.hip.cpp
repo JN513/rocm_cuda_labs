@@ -5,21 +5,23 @@
 
 __constant__ float d_kernel[2048];
 
-__global__ void convolution_1d_kernel(const float* input, float* output,
+__global__ void convolution_1d_kernel(const float* __restrict__ input,
+                                      float* __restrict__ output,
                                       int input_size, int kernel_size) {
-    int output_size = input_size - kernel_size + 1;
     int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int output_size = input_size - kernel_size + 1;
 
     if (i < output_size) {
         float sum = 0.0f;
 
-        #pragma unroll
+        #pragma unroll 8
         for (int k = 0; k < kernel_size; k++) {
-            sum += input[i + k] * d_kernel[k];
+            sum = fmaf(input[i + k], d_kernel[k], sum);
         }
         output[i] = sum;
     }
 }
+
 
 // A, B, C are device pointers (i.e. pointers to memory on the GPU)
 int main(void) {
